@@ -7,6 +7,28 @@ import { TrackMetadata, parseTrackMetadata } from "./lib/metadata";
 
 const ROOT_HANDLE_KEY = "music-root-handle";
 const TREE_OPEN_STATE_KEY = "library-open-directories";
+const LYRIC_FIELD_MAPPING_KEY = "bluetooth-lyric-field-mapping";
+
+type MetadataField = "title" | "artist" | "album";
+type LyricLineRole = "previous" | "current" | "next";
+
+const LINE_ROLE_LABELS: Record<LyricLineRole, string> = {
+  previous: "Previous line",
+  current: "Current line",
+  next: "Next line",
+};
+
+const FIELD_LABELS: Record<MetadataField, string> = {
+  title: "Title",
+  artist: "Artist",
+  album: "Album",
+};
+
+const DEFAULT_FIELD_MAPPING: Record<MetadataField, LyricLineRole> = {
+  title: "previous",
+  artist: "current",
+  album: "next",
+};
 
 function formatDuration(totalSeconds: number): string {
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
@@ -86,6 +108,8 @@ export default function App() {
   const [duration, setDuration] = useState(0);
   const [openDirectories, setOpenDirectories] = useState<Record<string, boolean>>({});
   const [openStateHydrated, setOpenStateHydrated] = useState(false);
+  const [fieldMapping, setFieldMapping] = useState<Record<MetadataField, LyricLineRole>>(DEFAULT_FIELD_MAPPING);
+  const [fieldMappingHydrated, setFieldMappingHydrated] = useState(false);
 
   const audioRef = useRef(new Audio());
   const trackObjectUrlRef = useRef<string | null>(null);
@@ -97,6 +121,13 @@ export default function App() {
   );
 
   const activeLyric = useMemo(() => activeLyricIndex(lyrics, currentTime * 1000), [lyrics, currentTime]);
+
+  const lyricWindow = useMemo(() => {
+    const previous = activeLyric > 0 ? lyrics[activeLyric - 1].text : "";
+    const current = activeLyric >= 0 ? lyrics[activeLyric].text : "";
+    const next = activeLyric >= 0 && activeLyric < lyrics.length - 1 ? lyrics[activeLyric + 1].text : "";
+    return { previous, current, next };
+  }, [lyrics, activeLyric]);
 
   const handleDirectoryOpenChange = useCallback((directoryId: string, open: boolean) => {
     setOpenDirectories((prev) => {
@@ -243,11 +274,32 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    void (async () => {
+      const storedMapping = await get<Record<MetadataField, LyricLineRole>>(LYRIC_FIELD_MAPPING_KEY);
+      if (storedMapping) {
+        setFieldMapping({
+          title: storedMapping.title ?? DEFAULT_FIELD_MAPPING.title,
+          artist: storedMapping.artist ?? DEFAULT_FIELD_MAPPING.artist,
+          album: storedMapping.album ?? DEFAULT_FIELD_MAPPING.album,
+        });
+      }
+      setFieldMappingHydrated(true);
+    })();
+  }, []);
+
+  useEffect(() => {
     if (!openStateHydrated) {
       return;
     }
     void set(TREE_OPEN_STATE_KEY, openDirectories);
   }, [openDirectories, openStateHydrated]);
+
+  useEffect(() => {
+    if (!fieldMappingHydrated) {
+      return;
+    }
+    void set(LYRIC_FIELD_MAPPING_KEY, fieldMapping);
+  }, [fieldMapping, fieldMappingHydrated]);
 
   useEffect(() => {
     void (async () => {
@@ -273,10 +325,16 @@ export default function App() {
       return;
     }
 
+    const usesLyricsWindow = lyrics.length > 0;
+
+    const resolvedTitle = usesLyricsWindow ? lyricWindow[fieldMapping.title] : currentMetadata.title;
+    const resolvedArtist = usesLyricsWindow ? lyricWindow[fieldMapping.artist] : currentMetadata.artist;
+    const resolvedAlbum = usesLyricsWindow ? lyricWindow[fieldMapping.album] : currentMetadata.album;
+
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentMetadata.title,
-      artist: currentMetadata.artist,
-      album: currentMetadata.album,
+      title: resolvedTitle,
+      artist: resolvedArtist,
+      album: resolvedAlbum,
       artwork: currentMetadata.artworkUrl
         ? [
             {
@@ -307,7 +365,7 @@ export default function App() {
         audioRef.current.currentTime = details.seekTime;
       }
     });
-  }, [currentMetadata, playNext, playPrevious, duration]);
+  }, [currentMetadata, playNext, playPrevious, duration, lyrics.length, lyricWindow, fieldMapping]);
 
   useEffect(() => {
     return () => {
@@ -415,6 +473,31 @@ export default function App() {
                 </p>
               ))
             )}
+          </div>
+
+          <h2>Bluetooth Metadata Mapping</h2>
+          <div className="mapping-grid">
+            {(["title", "artist", "album"] as MetadataField[]).map((field) => (
+              <label key={field} className="mapping-row">
+                <span>{FIELD_LABELS[field]} field</span>
+                <select
+                  value={fieldMapping[field]}
+                  onChange={(event) => {
+                    const value = event.target.value as LyricLineRole;
+                    setFieldMapping((prev) => ({
+                      ...prev,
+                      [field]: value,
+                    }));
+                  }}
+                >
+                  {(["previous", "current", "next"] as LyricLineRole[]).map((role) => (
+                    <option key={role} value={role}>
+                      {LINE_ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
           </div>
         </section>
       </main>
