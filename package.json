@@ -7,8 +7,10 @@
     "dev": "vite",
     "dev:https": "vite --mode https",
     "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --mode pages && cp dist/index.html dist/404.html",
     "preview": "vite preview",
-    "preview:https": "vite preview --mode https"
+    "preview:https": "vite preview --mode https",
+    "preview:pages": "vite preview --mode pages"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

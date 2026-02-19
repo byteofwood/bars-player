@@ -11,9 +11,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 export default defineConfig(function (_a) {
+    var _b;
     var mode = _a.mode;
     var useHttps = mode === "https";
+    var useGithubPagesBase = mode === "pages";
+    var env = (_b = globalThis.process) === null || _b === void 0 ? void 0 : _b.env;
+    var pagesBase = (env === null || env === void 0 ? void 0 : env.VITE_BASE_PATH) || "/bars-player/";
     return {
+        base: useGithubPagesBase ? pagesBase : "/",
         plugins: __spreadArray([react()], (useHttps ? [basicSsl()] : []), true),
         server: {
             https: useHttps,

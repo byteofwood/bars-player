@@ -42,8 +42,31 @@ Notes:
 npm run build
 ```
 
+## Build for GitHub Pages
+
+```bash
+npm run build:pages
+```
+
+This uses the repository base path (`/bars-player/`) and creates `dist/404.html` for SPA fallback on Pages.
+In GitHub Actions deploys, the base path is derived automatically from the repository name.
+
 ## Preview production build
 
 ```bash
 npm run preview:https -- --host 0.0.0.0 --port 4173
 ```
+
+To preview the Pages build locally:
+
+```bash
+npm run preview:pages
+```
+
+## Deploy to GitHub Pages
+
+1. Push this repo to GitHub on the `main` branch.
+2. In GitHub repo settings, open `Pages` and set source to `GitHub Actions`.
+3. The workflow at `.github/workflows/deploy-pages.yml` deploys automatically on each push to `main`.
+
+GitHub Pages supports this PWA setup (HTTPS + service worker + web manifest).

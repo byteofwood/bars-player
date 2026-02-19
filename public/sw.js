@@ -1,5 +1,8 @@
 const CACHE_NAME = "bars-player-shell-v1";
-const URLS = ["/", "/index.html", "/manifest.webmanifest"];
+const basePath = new URL(self.registration.scope).pathname;
+const toAppPath = (relativePath) => new URL(relativePath, self.registration.scope).pathname;
+const INDEX_PATH = toAppPath("index.html");
+const URLS = [basePath, INDEX_PATH, toAppPath("manifest.webmanifest"), toAppPath("icon.svg"), toAppPath("icon-maskable.svg")];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -28,7 +31,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match("/index.html")));
+    event.respondWith(fetch(request).catch(() => caches.match(INDEX_PATH)));
     return;
   }
 
