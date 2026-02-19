@@ -178,6 +178,28 @@
   background: #fff;
 }
 
+.mapping-row input[type="range"] {
+  width: 190px;
+}
+
+.hint {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.88rem;
+}
+
+.metadata-preview {
+  border: 1px solid #d1d5db;
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  background: #fff;
+}
+
+.metadata-preview p {
+  margin: 0.18rem 0;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
